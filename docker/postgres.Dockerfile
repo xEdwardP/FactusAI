@@ -1,7 +1,0 @@
-FROM postgres:18.4-bookworm
-
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=postgres
-ENV POSTGRES_DB=factusai
-
-EXPOSE 5432

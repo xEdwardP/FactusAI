@@ -4,7 +4,6 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import { toast } from "sonner"
 import {
   Mail,
@@ -12,10 +11,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  ScanLine,
-  Brain,
-  Send,
 } from "lucide-react"
+import AuthSplitLayout from "@/components/auth/AuthSplitLayout"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -50,85 +47,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
-      {/* ── Left Panel: Branding ── */}
-      <div className="hidden lg:flex relative flex-col justify-between overflow-hidden bg-brand px-14 py-12 text-white">
-        {/* Decorative floating shapes */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-white/5 blur-3xl animate-pulse" />
-          <div className="absolute bottom-10 right-10 h-56 w-56 rounded-full bg-white/5 blur-3xl animate-pulse [animation-delay:2s]" />
-        </div>
-
-        {/* Brand mark */}
-        <div className="relative z-10 flex justify-center mb-3">
-          <Image
-            src="/assets/logo.png"
-            alt="FactusAI"
-            width={150}
-            height={75}
-            priority
-            className="brightness-0 invert drop-shadow-md"
-          />
-        </div>
-
-        {/* Hero text */}
-        <div className="relative z-10 space-y-10">
-          <div>
-            <h2 className="text-4xl font-extrabold leading-tight mb-4">
-              Organiza tus facturas
-              <br />
-              <span className="text-sky-300">
-                de forma inteligente
-              </span>
-            </h2>
-            <p className="text-slate-300 text-base leading-relaxed max-w-md">
-              Registra, clasifica y envía tus comprobantes a tu contadora en
-              segundos. Sin caos, sin papeles.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              { icon: ScanLine, text: "Digitaliza tus facturas fácilmente" },
-              { icon: Brain, text: "Clasificación automática con IA" },
-              { icon: Send, text: "Envío directo por WhatsApp o correo" },
-            ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <Icon size={16} className="text-sky-300" />
-                </div>
-                <span className="text-sm text-slate-200">{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="relative z-10 text-xs text-slate-400">
-          © {new Date().getFullYear()} FactusAI. Todos los derechos reservados.
-        </p>
-      </div>
-
-      {/* ── Right Panel: Login Form ── */}
-      <div className="flex flex-col justify-center items-center bg-slate-50 min-h-screen px-6 py-12">
-        <div className="w-full max-w-sm">
-          {/* Mobile-only logo */}
-          <div className="flex justify-center mb-8 lg:hidden">
-            <Image
-              src="/assets/logo.png"
-              alt="FactusAI"
-              width={120}
-              height={60}
-              priority
-            />
-          </div>
-
-          <h1 className="text-2xl font-bold text-brand mb-1">
-            Bienvenido de nuevo
-          </h1>
-          <p className="text-sm text-slate-500 mb-8">
-            Ingresa tus credenciales para continuar
-          </p>
-
+    <AuthSplitLayout
+      title="Bienvenido de nuevo"
+      subtitle="Ingresa tus credenciales para continuar"
+    >
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
@@ -150,7 +72,7 @@ export default function LoginPage() {
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                   placeholder="correo@ejemplo.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-brand/15 focus:border-brand/60 transition-all"
                 />
               </div>
             </div>
@@ -175,7 +97,7 @@ export default function LoginPage() {
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition-all"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-brand/15 focus:border-brand/60 transition-all"
                 />
                 <button
                   type="button"
@@ -191,7 +113,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand hover:bg-brand-light active:scale-[0.98] text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-brand/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+              className="w-full bg-brand hover:bg-brand-light active:scale-[0.98] text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-brand/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus:outline-none focus:ring-4 focus:ring-brand/20"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -204,7 +126,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-8">
+          <p className="text-center text-sm text-slate-600 mt-7">
             ¿No tienes cuenta?{" "}
             <Link
               href="/auth/register"
@@ -213,8 +135,6 @@ export default function LoginPage() {
               Regístrate
             </Link>
           </p>
-        </div>
-      </div>
-    </main>
+    </AuthSplitLayout>
   )
 }

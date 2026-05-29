@@ -31,14 +31,24 @@ export async function POST(req: NextRequest) {
     const randomPart = Math.random().toString(36).substring(2, 8);
     const identificador = `${usernamePart}_${randomPart}`;
 
-    await prisma.usuario.create({
-      data: {
-        nombre,
-        correo,
-        contrasena: hash,
-        identificador,
-        estado: "Activo",
-      },
+    await prisma.$transaction(async (tx) => {
+      const usuario = await tx.usuario.create({
+        data: {
+          nombre,
+          correo,
+          contrasena: hash,
+          identificador,
+          estado: "Activo",
+        },
+      })
+
+      const empresa = await tx.empresa.create({
+        data: { nombre: `Empresa de ${nombre}` },
+      })
+
+      await tx.usuarioEmpresa.create({
+        data: { usuarioId: usuario.id, empresaId: empresa.id },
+      })
     })
 
     return NextResponse.json(

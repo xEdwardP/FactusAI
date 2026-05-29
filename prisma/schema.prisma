@@ -151,7 +151,7 @@ model Factura {
   fecha           DateTime       @db.Date
   proveedor       String         @db.VarChar(150)
   monto           Decimal        @db.Decimal(12, 2)
-  imagen          String?        @db.VarChar(255)
+  imagen          String?        @db.Text
   facturaFisica   Boolean        @default(false) @map("factura_fisica")
   tipoFactura     TipoFactura    @map("id_tipo_factura")
   tipoMovimiento  TipoMovimiento @map("ingreso_gasto")

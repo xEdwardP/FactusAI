@@ -42,7 +42,7 @@ export default function UploadPage() {
           Subir factura
         </h1>
         <p className="mt-1 text-slate-500">
-          Sube una imagen o PDF y completa los datos del comprobante.
+          Sube una imagen o PDF y completa el formulario. El archivo se enviará al guardar.
         </p>
       </div>
 

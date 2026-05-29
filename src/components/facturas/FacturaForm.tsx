@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
-import { getSafeApiMessage } from "@/lib/client-errors"
+import { uploadFacturaFile } from "@/lib/upload-factura-client"
 import type { Catalogos, FacturaFormValues } from "@/types/factura"
 
 const inputClass =
@@ -39,7 +39,7 @@ export default function FacturaForm({
   })
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null)
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -64,33 +64,10 @@ export default function FacturaForm({
       .catch(() => setError("No se pudieron cargar los catálogos."))
   }, [])
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
+    setPendingFile(file ?? null)
     setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const res = await fetch("/api/facturas/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(getSafeApiMessage(res.status, data.message))
-      }
-
-      setValues((prev) => ({ ...prev, imagen: data.path }))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al subir.")
-    } finally {
-      setUploading(false)
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,7 +76,13 @@ export default function FacturaForm({
     setError(null)
 
     try {
-      await onSubmit(values)
+      let imagen = values.imagen
+      if (pendingFile) {
+        imagen = await uploadFacturaFile(pendingFile)
+      }
+
+      await onSubmit({ ...values, imagen })
+      setPendingFile(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al guardar.")
     } finally {
@@ -127,18 +110,17 @@ export default function FacturaForm({
             type="file"
             accept="image/*,application/pdf"
             onChange={handleFileChange}
-            disabled={uploading}
+            disabled={loading}
             className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand file:text-white file:font-medium hover:file:bg-brand-light"
           />
-          {uploading && (
-            <p className="mt-2 text-xs text-slate-500 flex items-center gap-1">
-              <Loader2 size={14} className="animate-spin" />
-              Subiendo archivo…
+          {pendingFile && (
+            <p className="mt-2 text-xs text-slate-600">
+              {pendingFile.name} — se subirá al guardar
             </p>
           )}
-          {values.imagen && !uploading && (
-            <p className="mt-2 text-xs text-emerald-600">
-              Archivo subido correctamente.
+          {!pendingFile && values.imagen && (
+            <p className="mt-2 text-xs text-slate-500">
+              Comprobante actual guardado
             </p>
           )}
         </div>
@@ -309,13 +291,13 @@ export default function FacturaForm({
 
       <button
         type="submit"
-        disabled={loading || uploading}
+        disabled={loading}
         className="w-full bg-brand hover:bg-brand-light text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-brand/20 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <Loader2 size={16} className="animate-spin" />
-            Guardando…
+            {pendingFile ? "Subiendo y guardando…" : "Guardando…"}
           </span>
         ) : (
           submitLabel

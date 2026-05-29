@@ -1,23 +1,37 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { LayoutDashboard, Upload, BarChart3, Clock } from "lucide-react"
+import { LayoutDashboard, Upload, BarChart3, Clock, Loader2 } from "lucide-react"
 import Link from "next/link"
+import type { DashboardSummary } from "@/types/dashboard"
 
 export default function HomePage() {
   const { data: session } = useSession()
+  const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Datos de ejemplo para el plugin de inicio
-  const summary = {
-    total: 124,
-    invoices: 124,
-    monthAmount: 23450.75,
-    latest: [
-      { id: "F-2026-001", customer: "ACME S.A.", total: 3450.5 },
-      { id: "F-2026-002", customer: "Distribuciones X", total: 1200 },
-      { id: "F-2026-003", customer: "Servicios Y", total: 785.25 },
-    ],
-  }
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setSummary(data))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const cards = summary
+    ? [
+        { label: "Total facturas", value: summary.totalFacturas },
+        { label: "Facturas del mes", value: summary.facturasMes },
+        {
+          label: "Gastos del mes",
+          value: `S/ ${summary.montoMesGastos.toLocaleString("es-PE", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+        },
+        { label: "Recientes", value: summary.ultimas.length },
+      ]
+    : []
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -34,28 +48,28 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Total", value: summary.total },
-          { label: "Facturas", value: summary.invoices },
-          {
-            label: "Monto del mes",
-            value: `S/ ${summary.monthAmount.toLocaleString()}`,
-          },
-          { label: "Últimas facturas", value: summary.latest.length },
-        ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="group bg-white p-5 rounded-2xl border border-slate-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-          >
-            <p className="text-sm text-slate-500">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
-              {value}
-            </p>
-            <div className="mt-4 h-1 w-10 rounded-full bg-slate-200 group-hover:bg-brand/30 transition-colors" />
-          </div>
-        ))}
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white p-5 rounded-2xl border border-slate-200/70 shadow-sm flex items-center justify-center min-h-[100px]"
+              >
+                <Loader2 className="animate-spin text-slate-400" size={20} />
+              </div>
+            ))
+          : cards.map(({ label, value }) => (
+              <div
+                key={label}
+                className="group bg-white p-5 rounded-2xl border border-slate-200/70 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+              >
+                <p className="text-sm text-slate-500">{label}</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">
+                  {value}
+                </p>
+                <div className="mt-4 h-1 w-10 rounded-full bg-slate-200 group-hover:bg-brand/30 transition-colors" />
+              </div>
+            ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -135,24 +149,37 @@ export default function HomePage() {
               Ver todas
             </Link>
           </div>
-          <ul className="space-y-3">
-            {summary.latest.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50/60 p-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {inv.id}
-                  </p>
-                  <p className="text-xs text-slate-400">{inv.customer}</p>
-                </div>
-                <div className="text-sm font-semibold text-slate-800">
-                  S/ {inv.total.toFixed(2)}
-                </div>
-              </li>
-            ))}
-          </ul>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="animate-spin text-slate-400" size={20} />
+            </div>
+          ) : !summary?.ultimas.length ? (
+            <p className="text-sm text-slate-500 text-center py-8">
+              Aún no tienes facturas registradas.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {summary.ultimas.map((inv) => (
+                <li key={inv.id}>
+                  <Link
+                    href={`/invoices/${inv.id}`}
+                    className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50/60 p-3 hover:bg-slate-50 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">
+                        {inv.proveedor}
+                      </p>
+                      <p className="text-xs text-slate-400">{inv.fecha}</p>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-800">
+                      S/ {inv.monto.toFixed(2)}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </aside>
       </div>
     </div>

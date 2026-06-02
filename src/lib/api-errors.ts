@@ -10,6 +10,10 @@ export const USER_MESSAGES = {
   deleteFailed: "No se pudo eliminar. Intente nuevamente.",
   serviceUnavailable:
     "El servicio de archivos no está disponible. Intente más tarde.",
+  aiUnavailable:
+    "El reconocimiento con IA no está disponible. Complete el formulario manualmente.",
+  aiExtractFailed:
+    "No se pudieron leer los datos del comprobante. Complete el formulario manualmente.",
   internal: "Ocurrió un error. Intente nuevamente.",
 } as const
 

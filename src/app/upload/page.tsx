@@ -42,13 +42,15 @@ export default function UploadPage() {
           Subir factura
         </h1>
         <p className="mt-1 text-slate-500">
-          Sube una imagen o PDF y completa el formulario. El archivo se enviará al guardar.
+          Sube una imagen o PDF: la IA leerá fecha, proveedor, monto y categoría
+          para que los confirme o corrija. El archivo se guardará al registrar.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-sm">
         <FacturaForm
           showFileUpload
+          enableAiExtract
           submitLabel="Registrar factura"
           onSubmit={handleSubmit}
         />

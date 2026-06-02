@@ -22,6 +22,14 @@ export type Catalogos = {
   tiposDocumento: { id: number; nombre: string }[]
 }
 
+export type FacturaExtracted = {
+  fecha: string
+  proveedor: string
+  monto: number
+  categoriaSugerida: string
+  categoriaGastoId: number | null
+}
+
 export type FacturaFormValues = {
   fecha: string
   proveedor: string

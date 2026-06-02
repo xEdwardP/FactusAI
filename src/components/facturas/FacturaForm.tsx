@@ -1,9 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Loader2, Sparkles } from "lucide-react"
+import { extractFacturaFromFile } from "@/lib/extract-factura-client"
 import { uploadFacturaFile } from "@/lib/upload-factura-client"
-import type { Catalogos, FacturaFormValues } from "@/types/factura"
+import type {
+  Catalogos,
+  FacturaExtracted,
+  FacturaFormValues,
+} from "@/types/factura"
 
 const inputClass =
   "w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:ring-4 focus:ring-brand/15 focus:border-brand/60 transition-all"
@@ -25,6 +30,7 @@ type Props = {
   onSubmit: (values: FacturaFormValues) => Promise<void>
   submitLabel?: string
   showFileUpload?: boolean
+  enableAiExtract?: boolean
 }
 
 export default function FacturaForm({
@@ -32,6 +38,7 @@ export default function FacturaForm({
   onSubmit,
   submitLabel = "Guardar factura",
   showFileUpload = false,
+  enableAiExtract = false,
 }: Props) {
   const [values, setValues] = useState<FacturaFormValues>({
     ...defaultValues,
@@ -39,8 +46,11 @@ export default function FacturaForm({
   })
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null)
   const [loading, setLoading] = useState(false)
+  const [extracting, setExtracting] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [extracted, setExtracted] = useState<FacturaExtracted | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const extractRequestId = useRef(0)
 
   useEffect(() => {
     fetch("/api/catalogos")
@@ -64,10 +74,68 @@ export default function FacturaForm({
       .catch(() => setError("No se pudieron cargar los catálogos."))
   }, [])
 
+  useEffect(() => {
+    if (
+      enableAiExtract &&
+      catalogos &&
+      pendingFile &&
+      !extracted &&
+      !extracting &&
+      !error
+    ) {
+      void runExtraction(pendingFile)
+    }
+    // Solo reintentar cuando cargan catálogos con archivo pendiente
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogos])
+
+  const applyExtracted = (data: FacturaExtracted) => {
+    setExtracted(data)
+    setValues((prev) => ({
+      ...prev,
+      fecha: data.fecha,
+      proveedor: data.proveedor,
+      monto: String(data.monto),
+      categoriaGastoId:
+        data.categoriaGastoId != null
+          ? String(data.categoriaGastoId)
+          : prev.categoriaGastoId,
+    }))
+  }
+
+  const runExtraction = async (file: File) => {
+    const requestId = ++extractRequestId.current
+    setExtracting(true)
+    setExtracted(null)
+    setError(null)
+
+    try {
+      const data = await extractFacturaFromFile(file)
+      if (requestId !== extractRequestId.current) return
+      applyExtracted(data)
+    } catch (err) {
+      if (requestId !== extractRequestId.current) return
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudieron leer los datos del comprobante."
+      )
+    } finally {
+      if (requestId === extractRequestId.current) {
+        setExtracting(false)
+      }
+    }
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     setPendingFile(file ?? null)
+    setExtracted(null)
     setError(null)
+
+    if (file && enableAiExtract && catalogos) {
+      void runExtraction(file)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,7 +183,16 @@ export default function FacturaForm({
           />
           {pendingFile && (
             <p className="mt-2 text-xs text-slate-600">
-              {pendingFile.name} — se subirá al guardar
+              {pendingFile.name}
+              {extracting
+                ? " — analizando con IA…"
+                : " — se subirá al guardar"}
+            </p>
+          )}
+          {extracting && (
+            <p className="mt-2 flex items-center gap-2 text-sm text-brand">
+              <Loader2 size={14} className="animate-spin" />
+              Leyendo comprobante con Gemini…
             </p>
           )}
           {!pendingFile && values.imagen && (
@@ -123,6 +200,48 @@ export default function FacturaForm({
               Comprobante actual guardado
             </p>
           )}
+        </div>
+      )}
+
+      {extracted && !extracting && (
+        <div
+          className="rounded-xl border border-brand/25 bg-brand/5 px-4 py-3"
+          role="status"
+        >
+          <div className="flex items-start gap-2">
+            <Sparkles
+              size={18}
+              className="text-brand shrink-0 mt-0.5"
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-slate-900">
+                Datos reconocidos — confirme o corrija
+              </p>
+              <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-700">
+                <div>
+                  <dt className="text-xs text-slate-500">Fecha</dt>
+                  <dd>{extracted.fecha}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-500">Monto</dt>
+                  <dd>S/ {extracted.monto.toFixed(2)}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-slate-500">Proveedor</dt>
+                  <dd className="truncate">{extracted.proveedor}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-slate-500">Categoría sugerida</dt>
+                  <dd>{extracted.categoriaSugerida}</dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-slate-500">
+                Los campos del formulario ya están completados. Ajústelos si
+                hace falta antes de registrar.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -291,7 +410,7 @@ export default function FacturaForm({
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || extracting}
         className="w-full bg-brand hover:bg-brand-light text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-lg shadow-brand/20 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? (
@@ -299,10 +418,17 @@ export default function FacturaForm({
             <Loader2 size={16} className="animate-spin" />
             {pendingFile ? "Subiendo y guardando…" : "Guardando…"}
           </span>
+        ) : extracting ? (
+          "Espere el análisis con IA…"
         ) : (
           submitLabel
         )}
       </button>
+      {extracting && (
+        <p className="text-center text-xs text-slate-500 -mt-3">
+          El botón se habilitará al terminar el reconocimiento.
+        </p>
+      )}
     </form>
   )
 }
